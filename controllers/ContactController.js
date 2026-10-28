@@ -16,6 +16,15 @@ exports.createMessage = async (req, res) => {
   });
 };
 
+// PATCH /api/v1/contact/:id/status  { status: "replied" } (admin only)
+exports.updateStatus = async (req, res) => {
+  const status = req.body?.status;
+  if (!status) throw new ApiError(400, "Status is required");
+
+  const message = await ContactService.updateStatus(req.params.id, status);
+  res.status(200).json({ success: true, data: message });
+};
+
 // GET /api/v1/contact?status=new&page=1 (admin only)
 exports.getMessages = async (req, res) => {
   const { status, page, limit } = req.query;

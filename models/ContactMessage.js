@@ -46,7 +46,7 @@ const contactMessageSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["new", "replied", "closed"],
+      enum: { values: ["new", "replied", "closed"], message: "Status must be new, replied or closed" },
       default: "new",
     },
   },

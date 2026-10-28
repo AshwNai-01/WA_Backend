@@ -64,7 +64,7 @@ const leadSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["new", "contacted", "closed"],
+      enum: { values: ["new", "contacted", "closed"], message: "Status must be new, contacted or closed" },
       default: "new",
     },
   },

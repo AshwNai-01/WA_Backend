@@ -17,6 +17,15 @@ exports.createLead = async (req, res) => {
   });
 };
 
+// PATCH /api/v1/leads/:id/status  { status: "contacted" } (admin only)
+exports.updateStatus = async (req, res) => {
+  const status = req.body?.status;
+  if (!status) throw new ApiError(400, "Status is required");
+
+  const lead = await LeadService.updateStatus(req.params.id, status);
+  res.status(200).json({ success: true, data: lead });
+};
+
 // GET /api/v1/leads?status=new&page=1 (admin only)
 exports.getLeads = async (req, res) => {
   const { status, page, limit } = req.query;

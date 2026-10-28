@@ -1,4 +1,5 @@
 const ContactMessage = require("../models/ContactMessage");
+const ApiError = require("../utils/ApiError");
 
 const MAX_LIMIT = 50;
 
@@ -12,6 +13,13 @@ exports.createMessage = async ({ name, email, mobile, enquiryType, note, consent
     note,
     consent: consent === true || consent === "true",
   });
+};
+
+// Admin: change a message's status (new / replied / closed)
+exports.updateStatus = async (id, status) => {
+  const message = await ContactMessage.findByIdAndUpdate(id, { status }, { returnDocument: "after", runValidators: true }).lean();
+  if (!message) throw new ApiError(404, "Message not found");
+  return message;
 };
 
 // Admin list, newest first

@@ -36,6 +36,17 @@ exports.createLead = async ({ name, mobile, email, category, city, vendor, weddi
   });
 };
 
+// Admin: change a lead's status (new / contacted / closed)
+exports.updateStatus = async (id, status) => {
+  const lead = await Lead.findByIdAndUpdate(id, { status }, { returnDocument: "after", runValidators: true })
+    .populate("category", "name slug")
+    .populate("city", "name slug")
+    .populate("vendor", "name slug")
+    .lean();
+  if (!lead) throw new ApiError(404, "Lead not found");
+  return lead;
+};
+
 // Admin list, newest first
 exports.getLeads = async ({ status, page = 1, limit = 20 }) => {
   const filter = status ? { status } : {};
