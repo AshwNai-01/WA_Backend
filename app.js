@@ -41,6 +41,8 @@ app.use("/api/v1/auth", require("./routes/AuthRoutes"));
 app.use("/api/v1/categories", require("./routes/CategoryRoutes"));
 app.use("/api/v1/cities", require("./routes/CityRoutes"));
 app.use("/api/v1/vendors", require("./routes/VendorRoutes"));
+app.use("/api/v1/leads", require("./routes/LeadRoutes"));
+app.use("/api/v1/contact", require("./routes/ContactRoutes"));
 
 // Must stay last: 404 first, then the error handler
 app.use(notFound);
