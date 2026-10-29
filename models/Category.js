@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const slugify = require("../utils/slugify");
+const slugPlugin = require("./plugins/slugPlugin");
 
 const categorySchema = new mongoose.Schema(
   {
@@ -9,11 +9,6 @@ const categorySchema = new mongoose.Schema(
       unique: true,
       trim: true,
       maxlength: 60,
-    },
-    slug: {
-      type: String,
-      unique: true,
-      lowercase: true,
     },
     image: {
       type: String,
@@ -37,11 +32,6 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-categorySchema.pre("validate", function () {
-  // No name: skip, so the "required" validator reports it
-  if (this.name && (this.isModified("name") || !this.slug)) {
-    this.slug = slugify(this.name);
-  }
-});
+categorySchema.plugin(slugPlugin);
 
 module.exports = mongoose.model("Category", categorySchema);

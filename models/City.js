@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const slugify = require("../utils/slugify");
+const slugPlugin = require("./plugins/slugPlugin");
 
 const citySchema = new mongoose.Schema(
   {
@@ -9,11 +9,6 @@ const citySchema = new mongoose.Schema(
       unique: true,
       trim: true,
       maxlength: 60,
-    },
-    slug: {
-      type: String,
-      unique: true,
-      lowercase: true,
     },
     description: {
       type: String,
@@ -38,11 +33,6 @@ const citySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-citySchema.pre("validate", function () {
-  // No name: skip, so the "required" validator reports it
-  if (this.name && (this.isModified("name") || !this.slug)) {
-    this.slug = slugify(this.name);
-  }
-});
+citySchema.plugin(slugPlugin);
 
 module.exports = mongoose.model("City", citySchema);

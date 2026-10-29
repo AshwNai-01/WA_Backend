@@ -23,7 +23,3 @@ exports.login = async ({ email, password }) => {
 
   return { user, token: signToken(user) };
 };
-
-exports.getUserById = async (id) => {
-  return User.findById(id);
-};

@@ -3,23 +3,30 @@ const Category = require("../models/Category");
 const City = require("../models/City");
 const Vendor = require("../models/Vendor");
 const ApiError = require("../utils/ApiError");
+const findIdBySlug = require("../utils/findIdBySlug");
+const { findPage } = require("../utils/pagination");
 
-const MAX_LIMIT = 50;
+// Leads are always shown with category, city and vendor names
+const POPULATE = [
+  { path: "category", select: "name slug" },
+  { path: "city", select: "name slug" },
+  { path: "vendor", select: "name slug" },
+];
 
-// The form sends slugs ("caterers", "jaipur"); store ids. Unknown slug -> 400.
-const idForSlug = async (Model, slug, label) => {
+// The form sends slugs ("caterers", "jaipur"); store ids. A slug that doesn't exist -> 400.
+const requiredIdForSlug = async (Model, slug, label) => {
   if (!slug) return undefined;
-  const doc = await Model.findOne({ slug: String(slug).toLowerCase().trim() }).select("_id").lean();
-  if (!doc) throw new ApiError(400, `Unknown ${label}: ${slug}`);
-  return doc._id;
+  const id = await findIdBySlug(Model, slug);
+  if (!id) throw new ApiError(400, `Unknown ${label}: ${slug}`);
+  return id;
 };
 
 // Only these fields come from the client; status etc. are never taken from the body
 exports.createLead = async ({ name, mobile, email, category, city, vendor, weddingDate, message, consent, source }) => {
   const [categoryId, cityId, vendorId] = await Promise.all([
-    idForSlug(Category, category, "category"),
-    idForSlug(City, city, "city"),
-    idForSlug(Vendor, vendor, "vendor"),
+    requiredIdForSlug(Category, category, "category"),
+    requiredIdForSlug(City, city, "city"),
+    requiredIdForSlug(Vendor, vendor, "vendor"),
   ]);
 
   return Lead.create({
@@ -39,31 +46,18 @@ exports.createLead = async ({ name, mobile, email, category, city, vendor, weddi
 // Admin: change a lead's status (new / contacted / closed)
 exports.updateStatus = async (id, status) => {
   const lead = await Lead.findByIdAndUpdate(id, { status }, { returnDocument: "after", runValidators: true })
-    .populate("category", "name slug")
-    .populate("city", "name slug")
-    .populate("vendor", "name slug")
+    .populate(POPULATE)
     .lean();
   if (!lead) throw new ApiError(404, "Lead not found");
   return lead;
 };
 
 // Admin list, newest first
-exports.getLeads = async ({ status, page = 1, limit = 20 }) => {
-  const filter = status ? { status } : {};
-  const safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
-  const safePage = Math.max(page, 1);
-
-  const [leads, total] = await Promise.all([
-    Lead.find(filter)
-      .populate("category", "name slug")
-      .populate("city", "name slug")
-      .populate("vendor", "name slug")
-      .sort({ createdAt: -1, _id: -1 })
-      .skip((safePage - 1) * safeLimit)
-      .limit(safeLimit)
-      .lean(),
-    Lead.countDocuments(filter),
-  ]);
-
-  return { leads, total, page: safePage, totalPages: Math.ceil(total / safeLimit) };
+exports.getLeads = async ({ status, page, limit }) => {
+  return findPage(Lead, status ? { status } : {}, {
+    page,
+    limit,
+    populate: POPULATE,
+    sort: { createdAt: -1, _id: -1 },
+  });
 };

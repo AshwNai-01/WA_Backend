@@ -1,28 +1,12 @@
 const mongoose = require("mongoose");
-const { EMAIL_REGEX, MOBILE_REGEX, normalizeMobile } = require("../utils/validators");
+const contactFields = require("./fields/contactFields");
+
+const LEAD_STATUSES = ["new", "contacted", "closed"];
 
 // A "Get a Quote" enquiry from a city page or a vendor page
 const leadSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-      trim: true,
-      maxlength: [60, "Name must be at most 60 characters"],
-    },
-    mobile: {
-      type: String,
-      required: [true, "Mobile number is required"],
-      set: normalizeMobile,
-      match: [MOBILE_REGEX, "Please enter a valid mobile number"],
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      lowercase: true,
-      trim: true,
-      match: [EMAIL_REGEX, "Please enter a valid email"],
-    },
+    ...contactFields, // name, email, mobile, consent
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
@@ -48,14 +32,6 @@ const leadSchema = new mongoose.Schema(
       trim: true,
       maxlength: [1000, "Message must be at most 1000 characters"],
     },
-    consent: {
-      type: Boolean,
-      required: [true, "Please accept the communication consent"],
-      validate: {
-        validator: (value) => value === true,
-        message: "Please accept the communication consent",
-      },
-    },
     // Where the form was sent from, e.g. "city:jaipur" or "vendor:story-makers-jaipur-4bb89"
     source: {
       type: String,
@@ -64,7 +40,7 @@ const leadSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: { values: ["new", "contacted", "closed"], message: "Status must be new, contacted or closed" },
+      enum: { values: LEAD_STATUSES, message: "Status must be new, contacted or closed" },
       default: "new",
     },
   },
@@ -74,3 +50,4 @@ const leadSchema = new mongoose.Schema(
 leadSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Lead", leadSchema);
+module.exports.LEAD_STATUSES = LEAD_STATUSES;

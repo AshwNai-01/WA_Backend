@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const slugify = require("../utils/slugify");
+const slugPlugin = require("./plugins/slugPlugin");
 
 const vendorSchema = new mongoose.Schema(
   {
@@ -8,11 +8,6 @@ const vendorSchema = new mongoose.Schema(
       required: [true, "Vendor name is required"],
       trim: true,
       maxlength: 100,
-    },
-    slug: {
-      type: String,
-      unique: true,
-      lowercase: true,
     },
     category: {
       type: mongoose.Schema.Types.ObjectId,
@@ -60,13 +55,8 @@ const vendorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Vendor names can repeat (e.g. two "Rekha"), so add a short suffix
-vendorSchema.pre("validate", function () {
-  if (this.name && (this.isModified("name") || !this.slug)) {
-    const suffix = this._id.toString().slice(-5);
-    this.slug = `${slugify(this.name)}-${suffix}`;
-  }
-});
+// Vendor names can repeat (e.g. two "Rekha"), so the slug gets an id suffix
+vendorSchema.plugin(slugPlugin, { withIdSuffix: true });
 
 // Speeds up the home page filters
 vendorSchema.index({ city: 1, category: 1, isPrime: -1 });

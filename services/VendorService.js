@@ -1,58 +1,40 @@
-const mongoose = require("mongoose");
 const Vendor = require("../models/Vendor");
+const City = require("../models/City");
+const Category = require("../models/Category");
+const findIdBySlug = require("../utils/findIdBySlug");
+const { findPage, emptyPage } = require("../utils/pagination");
 
-const MAX_LIMIT = 50;
+// Vendors are always shown with their category and city names
+const POPULATE = [
+  { path: "category", select: "name slug" },
+  { path: "city", select: "name slug" },
+];
 
-// Turns a slug like "jaipur" into the City/Category _id
-const findIdBySlug = async (modelName, slug) => {
-  const doc = await mongoose.model(modelName).findOne({ slug }).select("_id").lean();
-  return doc ? doc._id : null;
-};
-
-exports.getVendors = async ({ city, category, prime, page = 1, limit = 12 }) => {
+// Filters by city/category slug; an unknown slug simply finds no vendors
+exports.getVendors = async ({ city, category, prime, page, limit }) => {
   const filter = { isActive: true };
 
   if (city) {
-    const cityId = await findIdBySlug("City", city);
-    if (!cityId) return { vendors: [], total: 0, page: 1, totalPages: 0 };
-    filter.city = cityId;
+    filter.city = await findIdBySlug(City, city);
+    if (!filter.city) return emptyPage();
   }
 
   if (category) {
-    const categoryId = await findIdBySlug("Category", category);
-    if (!categoryId) return { vendors: [], total: 0, page: 1, totalPages: 0 };
-    filter.category = categoryId;
+    filter.category = await findIdBySlug(Category, category);
+    if (!filter.category) return emptyPage();
   }
 
   if (prime) filter.isPrime = true;
 
-  const safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
-  const safePage = Math.max(page, 1);
-  const skip = (safePage - 1) * safeLimit;
-
-  const [vendors, total] = await Promise.all([
-    Vendor.find(filter)
-      .populate("category", "name slug")
-      .populate("city", "name slug")
-      // _id breaks ties so pages stay stable
-      .sort({ isPrime: -1, createdAt: -1, _id: -1 })
-      .skip(skip)
-      .limit(safeLimit)
-      .lean(),
-    Vendor.countDocuments(filter),
-  ]);
-
-  return {
-    vendors,
-    total,
-    page: safePage,
-    totalPages: Math.ceil(total / safeLimit),
-  };
+  return findPage(Vendor, filter, {
+    page,
+    limit,
+    populate: POPULATE,
+    // Prime first, then newest; _id breaks ties so pages stay stable
+    sort: { isPrime: -1, createdAt: -1, _id: -1 },
+  });
 };
 
 exports.getVendorBySlug = async (slug) => {
-  return Vendor.findOne({ slug, isActive: true })
-    .populate("category", "name slug")
-    .populate("city", "name slug")
-    .lean();
+  return Vendor.findOne({ slug, isActive: true }).populate(POPULATE).lean();
 };

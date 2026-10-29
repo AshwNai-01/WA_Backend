@@ -1,5 +1,6 @@
 const LeadService = require("../services/LeadService");
 const ApiError = require("../utils/ApiError");
+const { readPagination } = require("../utils/pagination");
 
 // POST /api/v1/leads (public "Get a Quote" form)
 exports.createLead = async (req, res) => {
@@ -17,6 +18,16 @@ exports.createLead = async (req, res) => {
   });
 };
 
+// GET /api/v1/leads?status=new&page=1 (admin only)
+exports.getLeads = async (req, res) => {
+  const { items, pagination } = await LeadService.getLeads({
+    status: req.query.status,
+    ...readPagination(req.query),
+  });
+
+  res.status(200).json({ success: true, data: items, pagination });
+};
+
 // PATCH /api/v1/leads/:id/status  { status: "contacted" } (admin only)
 exports.updateStatus = async (req, res) => {
   const status = req.body?.status;
@@ -24,20 +35,4 @@ exports.updateStatus = async (req, res) => {
 
   const lead = await LeadService.updateStatus(req.params.id, status);
   res.status(200).json({ success: true, data: lead });
-};
-
-// GET /api/v1/leads?status=new&page=1 (admin only)
-exports.getLeads = async (req, res) => {
-  const { status, page, limit } = req.query;
-  const result = await LeadService.getLeads({
-    status,
-    page: Number(page) || 1,
-    limit: Number(limit) || 20,
-  });
-
-  res.status(200).json({
-    success: true,
-    data: result.leads,
-    pagination: { total: result.total, page: result.page, totalPages: result.totalPages },
-  });
 };
